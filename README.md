@@ -11,7 +11,7 @@ of the pilgrims on the daily leaderboard.
 
 ## Play
 
-(public URL coming soon — Vercel deploy in progress)
+https://traverc.vercel.app/
 
 ## Run locally
 

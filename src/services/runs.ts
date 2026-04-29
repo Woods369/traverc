@@ -6,6 +6,10 @@ export interface SubmitRunInput {
   outcome: 'win' | 'death'
   turns: number
   tilesExplored: number
+  totalMoves: number
+  beastKills: number
+  banditKills: number
+  deathBiome?: string | null
   characterColor: number
   characterName: string
 }
@@ -21,6 +25,10 @@ export async function submitRun(input: SubmitRunInput): Promise<void> {
     outcome: input.outcome,
     turns: input.turns,
     tiles_explored: input.tilesExplored,
+    total_moves: input.totalMoves,
+    beast_kills: input.beastKills,
+    bandit_kills: input.banditKills,
+    death_biome: input.deathBiome ?? null,
     character_color: input.characterColor,
     character_name: input.characterName,
   })

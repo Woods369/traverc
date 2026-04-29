@@ -125,6 +125,13 @@ body {
   transform: translateY(1px);
 }
 
+.runEndFlavor {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #b8b6c2;
+  font-variant-numeric: tabular-nums;
+}
+
 .runEndUnlocks {
   margin-top: 14px;
   font-size: 13px;

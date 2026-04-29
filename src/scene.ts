@@ -89,6 +89,11 @@ export class GameScene extends Phaser.Scene {
   private runOver = false
   private encounters = new Map<string, Encounter>()
   private visitedKeys = new Set<string>()
+  // Phase 1 metrics — feed character stats and legacies later.
+  private totalMoves = 0
+  private beastKills = 0
+  private banditKills = 0
+  private deathBiome: TileType | null = null
   private logText!: Phaser.GameObjects.Text
   private logTimer?: Phaser.Time.TimerEvent
 
@@ -354,6 +359,7 @@ export class GameScene extends Phaser.Scene {
 
     this.unitHex = target
     this.mp -= cost
+    this.totalMoves += 1
     this.animateUnitTo(target)
     this.revealAround(this.unitHex)
     this.refreshHover()
@@ -397,6 +403,7 @@ export class GameScene extends Phaser.Scene {
       this.flashLog(`The ${TILE_LABEL[type]} drains you. \u22121 HP`, '#ffd1d1')
       this.updateStatus()
       if (this.hp <= 0) {
+        this.deathBiome = type
         this.endRun('death')
         return
       }
@@ -414,8 +421,12 @@ export class GameScene extends Phaser.Scene {
     const verb = enc.kind === 'beast' ? 'attacks' : 'ambushes'
     this.flashLog(`${enc.name} ${verb}! ${damagePart}`,
       enc.kind === 'beast' ? '#ffb38a' : '#ffd1d1')
+    // Encounter resolved either way — count it.
+    if (enc.kind === 'beast') this.beastKills += 1
+    else this.banditKills += 1
     this.updateStatus()
     if (this.hp <= 0) {
+      this.deathBiome = type
       this.endRun('death')
     }
   }
@@ -456,6 +467,10 @@ export class GameScene extends Phaser.Scene {
       turns: this.turn,
       tilesExplored: revealed,
       totalTiles: total,
+      totalMoves: this.totalMoves,
+      beastKills: this.beastKills,
+      banditKills: this.banditKills,
+      deathBiome: this.deathBiome,
       newlyUnlockedColorNames,
     })
 
@@ -466,6 +481,10 @@ export class GameScene extends Phaser.Scene {
         outcome,
         turns: this.turn,
         tilesExplored: revealed,
+        totalMoves: this.totalMoves,
+        beastKills: this.beastKills,
+        banditKills: this.banditKills,
+        deathBiome: this.deathBiome,
         characterColor: this.character.color,
         characterName: this.character.name,
       })

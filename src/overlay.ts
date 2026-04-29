@@ -8,7 +8,37 @@ export interface RunEndPayload {
   turns: number
   tilesExplored: number
   totalTiles: number
+  totalMoves: number
+  beastKills: number
+  banditKills: number
+  deathBiome?: string | null
   newlyUnlockedColorNames?: string[]
+}
+
+const BIOME_DEATH_FLAVOR: Record<string, string> = {
+  swamp: 'the swamp claimed you',
+  forest: 'the forest closed in',
+  hills: 'the hills broke you',
+  plains: 'the road was unkind',
+  sand: 'the dunes took you',
+  mountain: 'the mountains buried you',
+  water: 'the water took you',
+  shrine: 'the shrine fell silent',
+}
+
+function buildFlavorLine(p: RunEndPayload): string {
+  const parts: string[] = []
+  parts.push(`${p.totalMoves} step${p.totalMoves === 1 ? '' : 's'}`)
+  if (p.beastKills > 0) {
+    parts.push(`${p.beastKills} beast${p.beastKills === 1 ? '' : 's'} felled`)
+  }
+  if (p.banditKills > 0) {
+    parts.push(`${p.banditKills} bandit${p.banditKills === 1 ? '' : 's'} felled`)
+  }
+  if (p.outcome === 'death' && p.deathBiome && BIOME_DEATH_FLAVOR[p.deathBiome]) {
+    parts.push(BIOME_DEATH_FLAVOR[p.deathBiome])
+  }
+  return parts.join(' \u00b7 ')
 }
 
 export function showRunEnd(payload: RunEndPayload): void {
@@ -32,6 +62,11 @@ export function showRunEnd(payload: RunEndPayload): void {
   stats.textContent =
     `${payload.turns} turn${payload.turns === 1 ? '' : 's'} \u00b7 ` +
     `${payload.tilesExplored}/${payload.totalTiles} tiles explored (${pct}%)`
+
+  const flavorEl = document.getElementById('runEndFlavor') as HTMLElement | null
+  if (flavorEl) {
+    flavorEl.textContent = buildFlavorLine(payload)
+  }
 
   const unlocks = document.getElementById('runEndUnlocks') as HTMLElement | null
   if (unlocks) {
