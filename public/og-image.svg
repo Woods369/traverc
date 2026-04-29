@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="78%">
+      <stop offset="0%" stop-color="#1a1c25" />
+      <stop offset="100%" stop-color="#0b0d12" />
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)" />
+
+  <!-- decorative hex tiles in the back left -->
+  <g fill="#16181f" stroke="#22252f" stroke-width="2">
+    <polygon points="160,140 215,108 270,140 270,204 215,236 160,204" />
+    <polygon points="270,76 325,44 380,76 380,140 325,172 270,140" />
+    <polygon points="270,204 325,172 380,204 380,268 325,300 270,268" />
+    <polygon points="160,268 215,236 270,268 270,332 215,364 160,332" />
+    <polygon points="380,140 435,108 490,140 490,204 435,236 380,204" />
+  </g>
+
+  <!-- focal hex with pilgrim -->
+  <g transform="translate(280, 380)">
+    <polygon
+      points="0,-150 130,-75 130,75 0,150 -130,75 -130,-75"
+      fill="#16181f"
+      stroke="#ffeb3b"
+      stroke-width="8"
+      stroke-linejoin="round"
+    />
+    <circle cx="0" cy="0" r="46" fill="#ffeb3b" />
+  </g>
+
+  <!-- title block -->
+  <text
+    x="500"
+    y="295"
+    font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    font-size="148"
+    font-weight="700"
+    fill="#ffeb3b"
+    letter-spacing="2"
+  >traverc</text>
+  <text
+    x="500"
+    y="360"
+    font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    font-size="34"
+    fill="#d8d6e0"
+  >A small pilgrimage across an unknown land.</text>
+  <text
+    x="500"
+    y="410"
+    font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    font-size="22"
+    fill="#8e8c98"
+    letter-spacing="1"
+  >cozy hex roguelike · daily-seed leaderboard</text>
+</svg>
