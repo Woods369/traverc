@@ -98,6 +98,23 @@ export async function createBackendCharacter(input: {
   return fromDb(data as unknown as DbCharacter)
 }
 
+export async function claimLegaciesBackend(input: {
+  characterId: string
+  legacyIds: string[]
+}): Promise<string[]> {
+  const sb = getSupabase()
+  if (!sb || input.legacyIds.length === 0) return []
+  const { data, error } = await sb.rpc('claim_legacies', {
+    p_character_id: input.characterId,
+    p_legacy_ids: input.legacyIds,
+  })
+  if (error) {
+    console.warn('[traverc/characters] claimLegacies failed:', error)
+    return []
+  }
+  return Array.isArray(data) ? (data as string[]) : []
+}
+
 export async function applyRunOutcomeBackend(input: {
   characterId: string
   outcome: 'win' | 'death'
@@ -106,6 +123,7 @@ export async function applyRunOutcomeBackend(input: {
   deathBiome: string | null
   beastKills: number
   banditKills: number
+  xpAward: number
 }): Promise<void> {
   const sb = getSupabase()
   if (!sb) return
@@ -117,6 +135,7 @@ export async function applyRunOutcomeBackend(input: {
     p_death_biome: input.deathBiome,
     p_beast_kills: input.beastKills,
     p_bandit_kills: input.banditKills,
+    p_xp_award: input.xpAward,
   })
   if (error) {
     console.warn('[traverc/characters] applyRunOutcome failed:', error)

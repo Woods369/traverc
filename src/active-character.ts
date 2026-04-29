@@ -7,11 +7,13 @@ import {
   makeCharacter,
   type Character,
 } from './character'
+import { levelForXp } from './leveling'
 import { isBackendConfigured } from './services/supabase'
 import {
   getActiveBackendCharacter,
   createBackendCharacter,
   applyRunOutcomeBackend,
+  claimLegaciesBackend,
   listCharacters,
 } from './services/characters'
 
@@ -22,6 +24,7 @@ export interface RunOutcomePayload {
   deathBiome: string | null
   beastKills: number
   banditKills: number
+  xpAward: number
 }
 
 export async function getActiveCharacter(): Promise<Character | null> {
@@ -64,6 +67,7 @@ export async function applyRunToActive(
       deathBiome: run.deathBiome,
       beastKills: run.beastKills,
       banditKills: run.banditKills,
+      xpAward: run.xpAward,
     })
     // Refetch so the UI shows server-of-record values (handles concurrent
     // updates and the streak math in the RPC).
@@ -73,6 +77,34 @@ export async function applyRunToActive(
     // Fall through to local apply as a last-resort projection.
   }
   const next = applyRunLocally(character, run)
+  saveLocalCharacter(next)
+  return next
+}
+
+// Append newly-earned legacy ids to the persistent character.
+// Returns the updated character.
+export async function claimLegacies(
+  character: Character,
+  legacyIds: string[],
+): Promise<Character> {
+  if (legacyIds.length === 0) return character
+  if (isBackendConfigured()) {
+    await claimLegaciesBackend({ characterId: character.id, legacyIds })
+    const list = await listCharacters()
+    const refreshed = list.find((c) => c.id === character.id)
+    if (refreshed) return refreshed
+  }
+  const seen = new Set(character.earnedLegacies)
+  const next: Character = {
+    ...character,
+    earnedLegacies: [...character.earnedLegacies],
+  }
+  for (const id of legacyIds) {
+    if (!seen.has(id)) {
+      next.earnedLegacies.push(id)
+      seen.add(id)
+    }
+  }
   saveLocalCharacter(next)
   return next
 }
@@ -89,6 +121,8 @@ function applyRunLocally(c: Character, run: RunOutcomePayload): Character {
   next.totalTiles += run.tilesExplored
   next.encounterKills.beast += run.beastKills
   next.encounterKills.bandit += run.banditKills
+  next.xp = c.xp + Math.max(0, run.xpAward)
+  next.level = levelForXp(next.xp)
 
   if (run.outcome === 'win') {
     next.totalWins += 1

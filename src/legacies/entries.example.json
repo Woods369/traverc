@@ -1,0 +1,54 @@
+[
+  {
+    "_doc": "Each legacy has: id (stable string), title, flavor (shown earned), hint (shown locked), predicate.",
+    "_doc_predicate_kinds": [
+      "totalWins / totalRuns / totalDeaths / totalTiles / totalMoves / longestStreak / beastKills / banditKills / level   { kind, gte: <number> }",
+      "biomeDeaths   { kind: 'biomeDeaths', biome: 'swamp'|'forest'|'hills'|'plains'|'sand'|'mountain'|'water'|'shrine', gte: <number> }",
+      "thisRunWin / thisRunDeath / thisRunWinAtFullHp / thisRunWinAtHp1 / thisRunFullExploration   { kind }",
+      "thisRunMaxTurns   { kind: 'thisRunMaxTurns', lte: <number> }   (win in <= N turns)",
+      "all / any   { kind: 'all' | 'any', preds: [ ... ] }   (compose)"
+    ]
+  },
+  {
+    "id": "first-pilgrimage",
+    "title": "First Pilgrimage",
+    "flavor": "You set foot on the road.",
+    "hint": "Complete one pilgrimage.",
+    "predicate": { "kind": "totalWins", "gte": 1 }
+  },
+  {
+    "id": "wanderer",
+    "title": "Wanderer",
+    "flavor": "A hundred steps and many to come.",
+    "hint": "Take 100 steps in total across all pilgrimages.",
+    "predicate": { "kind": "totalMoves", "gte": 100 }
+  },
+  {
+    "id": "untouched",
+    "title": "Untouched",
+    "flavor": "The road did not lay a hand on you.",
+    "hint": "Reach the shrine without losing any HP.",
+    "predicate": { "kind": "thisRunWinAtFullHp" }
+  },
+  {
+    "id": "narrow-escape",
+    "title": "Narrow Escape",
+    "flavor": "One more step would have been the last.",
+    "hint": "Reach the shrine with exactly 1 HP remaining.",
+    "predicate": { "kind": "thisRunWinAtHp1" }
+  },
+  {
+    "id": "swift",
+    "title": "Swift Pilgrim",
+    "flavor": "The shrine knew you were coming.",
+    "hint": "Win a pilgrimage in 6 turns or fewer.",
+    "predicate": { "kind": "thisRunMaxTurns", "lte": 6 }
+  },
+  {
+    "id": "the-mire-knows-you",
+    "title": "The Mire Knows You",
+    "flavor": "The swamp keeps a list, and your name is on it.",
+    "hint": "Be claimed by the swamp 5 times.",
+    "predicate": { "kind": "biomeDeaths", "biome": "swamp", "gte": 5 }
+  }
+]

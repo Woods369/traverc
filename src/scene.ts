@@ -17,7 +17,9 @@ import {
 import { showRunEnd } from './overlay'
 import { derivedStats, makeCharacter, type Character } from './character'
 import { MILESTONE_COLORS } from './meta'
-import { applyRunToActive } from './active-character'
+import { awardXp } from './leveling'
+import { evaluateNewlyEarned } from './legacies'
+import { applyRunToActive, claimLegacies } from './active-character'
 import { submitRun } from './services/runs'
 import { recordVisit } from './services/tiles'
 import { isDailySeed, dateFromDailySeed } from './services/daily'
@@ -449,6 +451,16 @@ export class GameScene extends Phaser.Scene {
       if (t.visibility !== 'hidden') revealed++
     })
 
+    // XP for this run, computed client-side and forwarded to the RPC.
+    const xpAwarded = awardXp({
+      outcome,
+      turns: this.turn,
+      tilesExplored: revealed,
+      totalTiles: total,
+      hpAtEnd: this.hp,
+      maxHp: this.maxHp,
+    })
+
     const baseOverlay = {
       outcome,
       turns: this.turn,
@@ -458,11 +470,18 @@ export class GameScene extends Phaser.Scene {
       beastKills: this.beastKills,
       banditKills: this.banditKills,
       deathBiome: this.deathBiome,
+      xpAwarded,
     } as const
 
     // Show the overlay immediately so it feels responsive; we'll re-render
-    // it once the persistent character update returns (with any unlocks).
-    showRunEnd({ ...baseOverlay, newlyUnlockedColorNames: [] })
+    // it once the persistent character update returns (with any unlocks /
+    // level-up info).
+    showRunEnd({
+      ...baseOverlay,
+      newlyUnlockedColorNames: [],
+      newLevel: this.character.level,
+      leveledUp: false,
+    })
 
     // Submit to the daily leaderboard fire-and-forget.
     if (this.seedDate && isDailySeed(this.seed)) {
@@ -482,8 +501,11 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Persist run aggregates onto the character (backend or localStorage),
-    // then announce any robe-milestone unlocks crossed by this run.
+    // then announce any milestones / level-up / legacies crossed by this run.
     const oldWins = this.character.totalWins
+    const oldLevel = this.character.level
+    const hpAtEnd = this.hp
+    const maxHpAtEnd = this.maxHp
     void applyRunToActive(this.character, {
       outcome,
       totalMoves: this.totalMoves,
@@ -491,15 +513,50 @@ export class GameScene extends Phaser.Scene {
       deathBiome: this.deathBiome,
       beastKills: this.beastKills,
       banditKills: this.banditKills,
-    }).then((updated) => {
+      xpAward: xpAwarded,
+    }).then(async (updated) => {
       const newlyUnlockedColorNames: string[] = []
       for (const m of MILESTONE_COLORS) {
         if (oldWins < m.winsRequired && updated.totalWins >= m.winsRequired) {
           newlyUnlockedColorNames.push(m.name)
         }
       }
-      if (newlyUnlockedColorNames.length > 0) {
-        showRunEnd({ ...baseOverlay, newlyUnlockedColorNames })
+      const leveledUp = updated.level > oldLevel
+
+      // Evaluate legacies against the post-update character.
+      const newlyEarnedLegacies = evaluateNewlyEarned({
+        updated,
+        outcome,
+        turns: this.turn,
+        totalMoves: this.totalMoves,
+        beastKills: this.beastKills,
+        banditKills: this.banditKills,
+        deathBiome: this.deathBiome,
+        tilesExplored: revealed,
+        totalTiles: total,
+        hpAtEnd,
+        maxHp: maxHpAtEnd,
+      })
+      if (newlyEarnedLegacies.length > 0) {
+        await claimLegacies(
+          updated,
+          newlyEarnedLegacies.map((l) => l.id),
+        )
+      }
+      const newlyEarnedLegacyTitles = newlyEarnedLegacies.map((l) => l.title)
+
+      if (
+        leveledUp ||
+        newlyUnlockedColorNames.length > 0 ||
+        newlyEarnedLegacyTitles.length > 0
+      ) {
+        showRunEnd({
+          ...baseOverlay,
+          newlyUnlockedColorNames,
+          newLevel: updated.level,
+          leveledUp,
+          newlyEarnedLegacyTitles,
+        })
       }
     })
   }
@@ -623,7 +680,7 @@ export class GameScene extends Phaser.Scene {
     const mpHint = !this.runOver && this.mp === 0 ? '  (SPACE / ENTER to end turn)' : ''
     const seedTag = this.seed.startsWith('daily-') ? '  \u2022  DAILY' : ''
     this.statusText.setText(
-      `${this.character.name}${seedTag}  \u2022  turn ${this.turn}  \u2022  explored ${revealed}/${total} (${pct}%)${mpHint}`,
+      `${this.character.name}  L${this.character.level}${seedTag}  \u2022  turn ${this.turn}  \u2022  explored ${revealed}/${total} (${pct}%)${mpHint}`,
     )
     this.drawPips()
   }

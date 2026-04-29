@@ -132,11 +132,52 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.runEndXp {
+  margin-top: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #7cff7c;
+  letter-spacing: 0.4px;
+}
+
+.runEndLevel {
+  margin-top: 6px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #16181f;
+  background: #ffeb3b;
+  border-radius: 999px;
+  display: inline-block;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 0 4px rgba(255, 235, 59, 0.18);
+}
+
 .runEndUnlocks {
   margin-top: 14px;
   font-size: 13px;
   color: #ffeb3b;
   font-style: italic;
+}
+
+.runEndLegacies {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.runEndLegacy {
+  display: inline-block;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: #ffeb3b;
+  background: rgba(255, 235, 59, 0.08);
+  border: 1px solid rgba(255, 235, 59, 0.35);
+  border-radius: 999px;
 }
 
 /* ------------- start screen ------------- */
@@ -432,4 +473,138 @@ body {
 #startCreateBtn:active,
 #startBeginBtn:active {
   transform: translateY(1px);
+}
+
+.linkButton {
+  margin-top: 12px;
+  width: 100%;
+  padding: 8px 0;
+  background: transparent;
+  color: #b8b6c2;
+  border: 0;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease;
+}
+
+.linkButton:hover {
+  color: #ffeb3b;
+}
+
+/* ------------- profile ------------- */
+
+.profileXp {
+  margin: 0 0 22px;
+  text-align: left;
+}
+
+.profileXp__label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #8e8c98;
+  margin: 0 0 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.profileXp__track {
+  height: 8px;
+  background: #0e1016;
+  border: 1px solid #2a2d39;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.profileXp__fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ffeb3b, #fff170);
+  transition: width 0.4s ease;
+}
+
+.profileSection {
+  text-align: left;
+  margin: 0 0 22px;
+}
+
+.profileSection h3 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #8e8c98;
+}
+
+.profileGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 18px;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+.profileGrid dt {
+  color: #8e8c98;
+  font-variant-numeric: tabular-nums;
+}
+
+.profileGrid dd {
+  margin: 0;
+  color: #f3f1f8;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.profileEmpty {
+  margin: 0;
+  font-size: 13px;
+  color: #6f6d78;
+  font-style: italic;
+}
+
+.legaciesGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.legacyCard {
+  padding: 10px 12px;
+  border: 1px solid #2a2d39;
+  border-radius: 8px;
+  background: #0e1016;
+}
+
+.legacyCard__title {
+  margin: 0;
+  font-size: 13px;
+  color: #f3f1f8;
+  font-weight: 600;
+}
+
+.legacyCard__body {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #b8b6c2;
+  line-height: 1.45;
+}
+
+.legacyCard.earned .legacyCard__title {
+  color: #ffeb3b;
+}
+
+.legacyCard.locked {
+  opacity: 0.55;
+  border-style: dashed;
+}
+
+.legacyCard.locked .legacyCard__title {
+  color: #8e8c98;
 }

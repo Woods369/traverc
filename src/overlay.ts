@@ -13,6 +13,10 @@ export interface RunEndPayload {
   banditKills: number
   deathBiome?: string | null
   newlyUnlockedColorNames?: string[]
+  newlyEarnedLegacyTitles?: string[]
+  xpAwarded: number
+  newLevel: number
+  leveledUp: boolean
 }
 
 const BIOME_DEATH_FLAVOR: Record<string, string> = {
@@ -68,6 +72,22 @@ export function showRunEnd(payload: RunEndPayload): void {
     flavorEl.textContent = buildFlavorLine(payload)
   }
 
+  const xpEl = document.getElementById('runEndXp') as HTMLElement | null
+  if (xpEl) {
+    xpEl.textContent = `+${payload.xpAwarded} XP`
+  }
+
+  const levelEl = document.getElementById('runEndLevel') as HTMLElement | null
+  if (levelEl) {
+    if (payload.leveledUp) {
+      levelEl.textContent = `Level ${payload.newLevel} reached!`
+      levelEl.hidden = false
+    } else {
+      levelEl.textContent = ''
+      levelEl.hidden = true
+    }
+  }
+
   const unlocks = document.getElementById('runEndUnlocks') as HTMLElement | null
   if (unlocks) {
     const names = payload.newlyUnlockedColorNames ?? []
@@ -76,6 +96,20 @@ export function showRunEnd(payload: RunEndPayload): void {
         `New robe${names.length === 1 ? '' : 's'} unlocked: ${names.join(', ')}.`
     } else {
       unlocks.textContent = ''
+    }
+  }
+
+  const legacyEl = document.getElementById('runEndLegacies') as HTMLElement | null
+  if (legacyEl) {
+    const titles = payload.newlyEarnedLegacyTitles ?? []
+    if (titles.length > 0) {
+      legacyEl.innerHTML = titles
+        .map((t) => `<span class="runEndLegacy">Legacy: ${escapeHtml(t)}</span>`)
+        .join('')
+      legacyEl.hidden = false
+    } else {
+      legacyEl.innerHTML = ''
+      legacyEl.hidden = true
     }
   }
 
@@ -91,4 +125,13 @@ export function showRunEnd(payload: RunEndPayload): void {
 export function hideRunEnd(): void {
   const overlay = document.getElementById('runEndOverlay') as HTMLElement | null
   if (overlay) overlay.hidden = true
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }

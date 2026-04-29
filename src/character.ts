@@ -1,8 +1,9 @@
 // Persistent character data model. Aggregates accumulate across runs;
 // per-run derived stats (HP/MP/etc.) come from `derivedStats(character)`
-// so the level system in Phase 3 has a single place to scale them.
+// which scales them by `character.level` via src/leveling.ts.
 
 import { mulberry32, stringToSeed } from './world'
+import { statsForLevel } from './leveling'
 
 export interface CharacterStats {
   maxHp: number
@@ -34,15 +35,9 @@ export interface Character {
   createdAt: string
 }
 
-// Derived per-run stats. Phase 3 will scale these by `c.level`.
-export function derivedStats(_c: Character): CharacterStats {
-  return {
-    maxHp: 5,
-    hp: 5,
-    maxMp: 4,
-    vision: 2,
-    toughness: 0,
-  }
+// Per-run starting stats. Scales with the character's level.
+export function derivedStats(c: Character): CharacterStats {
+  return statsForLevel(c.level)
 }
 
 // Three colours unlocked from the start; the rest unlock by milestones.

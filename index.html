@@ -84,12 +84,52 @@
           </label>
 
           <button id="startBeginBtn" type="button">Begin pilgrimage</button>
+          <button id="openProfileBtn" type="button" class="linkButton">View profile</button>
 
           <section id="leaderboardPanel" class="leaderboardPanel" hidden>
             <h3>Today's pilgrims</h3>
             <ol id="leaderboardList" class="leaderboardList"></ol>
             <p id="leaderboardEmpty" class="leaderboardEmpty" hidden>No pilgrimages completed yet today. Be the first.</p>
           </section>
+        </section>
+
+        <!-- ===== Profile state ===== -->
+        <section id="startProfile" hidden>
+          <div class="characterCard">
+            <span id="profileSwatch" class="characterCard__swatch"></span>
+            <div class="characterCard__body">
+              <h2 id="profileName" class="characterCard__name"></h2>
+              <p id="profileMeta" class="characterCard__meta"></p>
+            </div>
+          </div>
+
+          <div id="profileXp" class="profileXp">
+            <div class="profileXp__label">
+              <span id="profileXpText"></span>
+              <span id="profileXpRemaining"></span>
+            </div>
+            <div class="profileXp__track">
+              <div id="profileXpFill" class="profileXp__fill"></div>
+            </div>
+          </div>
+
+          <div class="profileSection">
+            <h3>Lifetime</h3>
+            <dl id="profileLifetime" class="profileGrid"></dl>
+          </div>
+
+          <div class="profileSection">
+            <h3>Combat</h3>
+            <dl id="profileCombat" class="profileGrid"></dl>
+          </div>
+
+          <div class="profileSection">
+            <h3 id="profileLegaciesHeading">Legacies</h3>
+            <p id="profileLegaciesEmpty" class="profileEmpty" hidden>No legacies designed yet. The road is quiet.</p>
+            <ul id="profileLegacies" class="legaciesGrid"></ul>
+          </div>
+
+          <button id="profileBackBtn" type="button" class="linkButton">Back</button>
         </section>
       </div>
     </div>
@@ -100,7 +140,10 @@
         <p id="runEndSubtitle"></p>
         <p id="runEndStats"></p>
         <p id="runEndFlavor" class="runEndFlavor"></p>
+        <p id="runEndXp" class="runEndXp"></p>
+        <p id="runEndLevel" class="runEndLevel" hidden></p>
         <p id="runEndUnlocks" class="runEndUnlocks"></p>
+        <div id="runEndLegacies" class="runEndLegacies" hidden></div>
         <button id="runEndButton" type="button">Start a new pilgrimage</button>
       </div>
     </div>

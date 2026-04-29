@@ -14,6 +14,7 @@ import { getDailySeed } from './services/daily'
 import { getLeaderboard, type LeaderboardEntry } from './services/runs'
 import { isBackendConfigured } from './services/supabase'
 import { ensurePlayer } from './services/auth'
+import { renderProfile } from './profile'
 
 export interface BeginPayload {
   character: Character
@@ -63,7 +64,10 @@ export async function initStartScreen(opts: StartScreenOpts): Promise<void> {
   const root = document.getElementById('startScreen') as HTMLElement | null
   const createSection = document.getElementById('startCreate') as HTMLElement | null
   const readySection = document.getElementById('startReady') as HTMLElement | null
-  if (!root || !createSection || !readySection) return
+  const profileSection = document.getElementById('startProfile') as HTMLElement | null
+  const openProfileBtn = document.getElementById('openProfileBtn') as HTMLButtonElement | null
+  const profileBackBtn = document.getElementById('profileBackBtn') as HTMLButtonElement | null
+  if (!root || !createSection || !readySection || !profileSection) return
 
   // Create-state nodes
   const nameInput = document.getElementById('startName') as HTMLInputElement | null
@@ -104,13 +108,28 @@ export async function initStartScreen(opts: StartScreenOpts): Promise<void> {
     showCreate()
   }
 
+  // Profile open / back wiring.
+  openProfileBtn?.addEventListener('click', () => {
+    if (!character) return
+    createSection.hidden = true
+    readySection.hidden = true
+    profileSection.hidden = false
+    renderProfile(character)
+  })
+  profileBackBtn?.addEventListener('click', () => {
+    profileSection.hidden = true
+    if (character) showReady(character)
+    else showCreate()
+  })
+
   // -------------------------------------------------------------------------
   // CREATE STATE
   // -------------------------------------------------------------------------
   function showCreate(): void {
-    if (!createSection || !readySection) return
+    if (!createSection || !readySection || !profileSection) return
     createSection.hidden = false
     readySection.hidden = true
+    profileSection.hidden = true
     populateColorPicker()
     nameInput?.focus()
   }
@@ -207,9 +226,10 @@ export async function initStartScreen(opts: StartScreenOpts): Promise<void> {
   // READY STATE
   // -------------------------------------------------------------------------
   function showReady(c: Character): void {
-    if (!createSection || !readySection) return
+    if (!createSection || !readySection || !profileSection) return
     createSection.hidden = true
     readySection.hidden = false
+    profileSection.hidden = true
 
     swatch!.style.backgroundColor = hex(c.color)
     readyName!.textContent = c.name
