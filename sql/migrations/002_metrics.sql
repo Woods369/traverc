@@ -26,7 +26,9 @@ end$$;
 
 -- Refresh the leaderboard view so future UI can render kill counts +
 -- step counts directly. Filter (outcome = 'win') so death_biome stays out.
-create or replace view public.leaderboard_today as
+-- Postgres won't reorder columns via CREATE OR REPLACE VIEW, so drop first.
+drop view if exists public.leaderboard_today;
+create view public.leaderboard_today as
   select
     r.id,
     r.seed_date,
