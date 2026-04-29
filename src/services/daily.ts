@@ -28,9 +28,15 @@ export async function getDailySeed(): Promise<DailySeed> {
     if (!error && data) {
       return { seedDate: data.seed_date, seed: data.seed, source: 'server' }
     }
-    // If the row's missing, optimistically insert one so all clients agree.
+    // If the row's missing, optimistically upsert one so all clients agree.
+    // ignoreDuplicates avoids errors when a concurrent client wins the race.
     const localSeed = `daily-${date}`
-    await sb.from('daily_seeds').insert({ seed_date: date, seed: localSeed })
+    await sb
+      .from('daily_seeds')
+      .upsert(
+        { seed_date: date, seed: localSeed },
+        { onConflict: 'seed_date', ignoreDuplicates: true },
+      )
     return { seedDate: date, seed: localSeed, source: 'local' }
   }
   return { seedDate: date, seed: `daily-${date}`, source: 'local' }
