@@ -88,6 +88,11 @@ export async function initStartScreen(opts: StartScreenOpts): Promise<void> {
 
   if (dailyDateEl) dailyDateEl.textContent = prettyDate()
 
+  // Default-selected robe; populateColorPicker may bump this when palette
+  // expands. Declared up here so showCreate() can reference it before the
+  // function body that wires the picker.
+  let selectedColor = STARTING_COLORS[0].value
+
   // ---- Bootstrap: backend session + active character ----------------------
   // Anonymous Supabase session if backend is configured. No-op otherwise.
   await ensurePlayer('Pilgrim')
@@ -121,7 +126,6 @@ export async function initStartScreen(opts: StartScreenOpts): Promise<void> {
     }
   }
 
-  let selectedColor = STARTING_COLORS[0].value
   function populateColorPicker(): void {
     if (!colorGrid) return
     const palette: ColorEntry[] = STARTING_COLORS.map((c) => ({ ...c }))
