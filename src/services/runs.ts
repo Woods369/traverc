@@ -10,6 +10,7 @@ export interface SubmitRunInput {
   beastKills: number
   banditKills: number
   deathBiome?: string | null
+  characterId?: string | null
   characterColor: number
   characterName: string
 }
@@ -20,6 +21,7 @@ export async function submitRun(input: SubmitRunInput): Promise<void> {
   if (!sb || !player) return
   const { error } = await sb.from('runs').insert({
     player_id: player.id,
+    character_id: input.characterId ?? null,
     seed_date: input.seedDate,
     finished_at: new Date().toISOString(),
     outcome: input.outcome,

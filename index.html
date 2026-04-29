@@ -43,38 +43,53 @@
 
     <div id="startScreen">
       <div class="startCard">
-        <h2 class="startTitle">A pilgrimage</h2>
-        <p class="startTagline">Cross the unknown. Reach the shrine. Beware the swamps and the bandits on the road.</p>
+        <!-- ===== Create state ===== -->
+        <section id="startCreate" hidden>
+          <h2 class="startTitle">Create your pilgrim</h2>
+          <p class="startTagline">A name and a robe, before the road takes you.</p>
 
-        <label class="startField">
-          <span>Pilgrim's name</span>
-          <input id="startName" type="text" maxlength="24" placeholder="Pilgrim" autocomplete="off" />
-        </label>
+          <label class="startField">
+            <span>Pilgrim's name</span>
+            <input id="startName" type="text" maxlength="24" placeholder="Pilgrim" autocomplete="off" />
+          </label>
 
-        <fieldset class="startField">
-          <legend>Robe</legend>
-          <div id="startColors" class="colorGrid"></div>
-          <p id="startLockedHint" class="lockedHint"></p>
-        </fieldset>
+          <fieldset class="startField">
+            <legend>Robe</legend>
+            <div id="startColors" class="colorGrid"></div>
+            <p id="startLockedHint" class="lockedHint"></p>
+          </fieldset>
 
-        <p id="startStats" class="startStats"></p>
+          <p id="startNameError" class="startNameError" hidden></p>
 
-        <label class="dailyToggle">
-          <input id="startDaily" type="checkbox" />
-          <span>
-            <strong>Today's pilgrimage</strong>
-            <em id="startDailyDate"></em>
-          </span>
-        </label>
+          <button id="startCreateBtn" type="button">Create your pilgrim</button>
+        </section>
 
-        <p id="startNameError" class="startNameError" hidden></p>
+        <!-- ===== Ready state ===== -->
+        <section id="startReady" hidden>
+          <div class="characterCard">
+            <span id="readySwatch" class="characterCard__swatch"></span>
+            <div class="characterCard__body">
+              <h2 id="readyName" class="characterCard__name"></h2>
+              <p id="readyMeta" class="characterCard__meta"></p>
+              <p id="readyAggregates" class="characterCard__aggregates"></p>
+            </div>
+          </div>
 
-        <button id="startBegin" type="button">Begin pilgrimage</button>
+          <label class="dailyToggle">
+            <input id="startDaily" type="checkbox" />
+            <span>
+              <strong>Today's pilgrimage</strong>
+              <em id="startDailyDate"></em>
+            </span>
+          </label>
 
-        <section id="leaderboardPanel" class="leaderboardPanel" hidden>
-          <h3>Today's pilgrims</h3>
-          <ol id="leaderboardList" class="leaderboardList"></ol>
-          <p id="leaderboardEmpty" class="leaderboardEmpty" hidden>No pilgrimages completed yet today. Be the first.</p>
+          <button id="startBeginBtn" type="button">Begin pilgrimage</button>
+
+          <section id="leaderboardPanel" class="leaderboardPanel" hidden>
+            <h3>Today's pilgrims</h3>
+            <ol id="leaderboardList" class="leaderboardList"></ol>
+            <p id="leaderboardEmpty" class="leaderboardEmpty" hidden>No pilgrimages completed yet today. Be the first.</p>
+          </section>
         </section>
       </div>
     </div>

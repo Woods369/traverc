@@ -1,12 +1,19 @@
-// Pre-run "choose your traveller" screen. Reads meta-progression for unlocks
-// and lifetime stats; emits a Character via onBegin when the player starts.
+// Pre-run UI. Has two states:
+//   - "create" — first-time players pick a name + robe and create a pilgrim.
+//   - "ready"  — returning players see their pilgrim card + daily toggle +
+//                begin button + today's leaderboard.
 
-import { STARTING_COLORS, makeCharacter, type Character } from './character'
-import { MILESTONE_COLORS, loadMeta } from './meta'
+import { STARTING_COLORS, type Character } from './character'
+import { MILESTONE_COLORS } from './meta'
 import { isProfane } from './profanity'
+import {
+  getActiveCharacter,
+  createActiveCharacter,
+} from './active-character'
 import { getDailySeed } from './services/daily'
 import { getLeaderboard, type LeaderboardEntry } from './services/runs'
 import { isBackendConfigured } from './services/supabase'
+import { ensurePlayer } from './services/auth'
 
 export interface BeginPayload {
   character: Character
@@ -18,9 +25,11 @@ export interface StartScreenOpts {
   onBegin: (payload: BeginPayload) => void
 }
 
-// Local-date based daily seed. Same calendar day = same seed everywhere
-// the player's clock agrees on the date. Tier 1 will replace this with a
-// server-issued seed for true cross-player sharing.
+interface ColorEntry {
+  value: number
+  name: string
+}
+
 function todayDateString(): string {
   const d = new Date()
   const y = d.getFullYear()
@@ -38,30 +47,70 @@ function prettyDate(): string {
   })
 }
 
-interface ColorEntry {
-  value: number
-  name: string
+function hex(value: number): string {
+  return '#' + value.toString(16).padStart(6, '0')
 }
 
-export function initStartScreen(opts: StartScreenOpts): void {
+function colorName(value: number): string {
+  const fromStarter = STARTING_COLORS.find((c) => c.value === value)
+  if (fromStarter) return fromStarter.name
+  const fromMilestone = MILESTONE_COLORS.find((m) => m.color === value)
+  return fromMilestone?.name ?? 'Unknown'
+}
+
+export async function initStartScreen(opts: StartScreenOpts): Promise<void> {
+  // ---- DOM lookups ---------------------------------------------------------
   const root = document.getElementById('startScreen') as HTMLElement | null
+  const createSection = document.getElementById('startCreate') as HTMLElement | null
+  const readySection = document.getElementById('startReady') as HTMLElement | null
+  if (!root || !createSection || !readySection) return
+
+  // Create-state nodes
   const nameInput = document.getElementById('startName') as HTMLInputElement | null
   const colorGrid = document.getElementById('startColors') as HTMLElement | null
-  const beginBtn = document.getElementById('startBegin') as HTMLButtonElement | null
-  const statsEl = document.getElementById('startStats') as HTMLElement | null
   const lockedHint = document.getElementById('startLockedHint') as HTMLElement | null
+  const nameError = document.getElementById('startNameError') as HTMLElement | null
+  const createBtn = document.getElementById('startCreateBtn') as HTMLButtonElement | null
+  if (!nameInput || !colorGrid || !createBtn) return
+
+  // Ready-state nodes
+  const swatch = document.getElementById('readySwatch') as HTMLElement | null
+  const readyName = document.getElementById('readyName') as HTMLElement | null
+  const readyMeta = document.getElementById('readyMeta') as HTMLElement | null
+  const readyAggregates = document.getElementById('readyAggregates') as HTMLElement | null
+  const beginBtn = document.getElementById('startBeginBtn') as HTMLButtonElement | null
   const dailyToggle = document.getElementById('startDaily') as HTMLInputElement | null
   const dailyDateEl = document.getElementById('startDailyDate') as HTMLElement | null
-  const nameError = document.getElementById('startNameError') as HTMLElement | null
   const leaderboardPanel = document.getElementById('leaderboardPanel') as HTMLElement | null
   const leaderboardList = document.getElementById('leaderboardList') as HTMLOListElement | null
   const leaderboardEmpty = document.getElementById('leaderboardEmpty') as HTMLElement | null
-
-  if (!root || !nameInput || !colorGrid || !beginBtn || !statsEl) return
+  if (!swatch || !readyName || !readyMeta || !readyAggregates || !beginBtn) return
 
   if (dailyDateEl) dailyDateEl.textContent = prettyDate()
 
-  const showNameError = (msg: string | null): void => {
+  // ---- Bootstrap: backend session + active character ----------------------
+  // Anonymous Supabase session if backend is configured. No-op otherwise.
+  await ensurePlayer('Pilgrim')
+
+  let character = await getActiveCharacter()
+  if (character) {
+    showReady(character)
+  } else {
+    showCreate()
+  }
+
+  // -------------------------------------------------------------------------
+  // CREATE STATE
+  // -------------------------------------------------------------------------
+  function showCreate(): void {
+    if (!createSection || !readySection) return
+    createSection.hidden = false
+    readySection.hidden = true
+    populateColorPicker()
+    nameInput?.focus()
+  }
+
+  function showNameError(msg: string | null): void {
     if (!nameError) return
     if (msg) {
       nameError.textContent = msg
@@ -72,7 +121,108 @@ export function initStartScreen(opts: StartScreenOpts): void {
     }
   }
 
-  const renderLeaderboard = (entries: LeaderboardEntry[]): void => {
+  let selectedColor = STARTING_COLORS[0].value
+  function populateColorPicker(): void {
+    if (!colorGrid) return
+    const palette: ColorEntry[] = STARTING_COLORS.map((c) => ({ ...c }))
+    for (const m of MILESTONE_COLORS) {
+      if (!palette.some((c) => c.value === m.color)) {
+        palette.push({ value: m.color, name: m.name })
+      }
+    }
+    // For v1 (single character): only starter colours unlocked at creation
+    // time. Future: expose milestones tied to the player's lifetime wins.
+    const unlocked = new Set(STARTING_COLORS.map((c) => c.value))
+    selectedColor = STARTING_COLORS[0].value
+
+    colorGrid.replaceChildren()
+    const swatches: HTMLElement[] = []
+    for (const c of palette) {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'colorSwatch'
+      button.style.backgroundColor = hex(c.value)
+      const isUnlocked = unlocked.has(c.value)
+      if (!isUnlocked) {
+        button.disabled = true
+        button.classList.add('locked')
+        const milestone = MILESTONE_COLORS.find((m) => m.color === c.value)
+        const wins = milestone?.winsRequired ?? 0
+        button.title = `${c.name} — unlocks at ${wins} win${wins === 1 ? '' : 's'}`
+        button.setAttribute('aria-label', `${c.name} (locked)`)
+      } else {
+        button.title = c.name
+        button.setAttribute('aria-label', c.name)
+        button.addEventListener('click', () => {
+          selectedColor = c.value
+          for (const s of swatches) s.classList.remove('selected')
+          button.classList.add('selected')
+        })
+      }
+      if (isUnlocked && c.value === selectedColor) button.classList.add('selected')
+      colorGrid.appendChild(button)
+      swatches.push(button)
+    }
+
+    if (lockedHint) {
+      const lockedCount = palette.filter((c) => !unlocked.has(c.value)).length
+      lockedHint.textContent =
+        lockedCount > 0
+          ? `${lockedCount} robe${lockedCount === 1 ? '' : 's'} locked \u2014 earn them by completing pilgrimages.`
+          : ''
+    }
+  }
+
+  const handleCreate = async (): Promise<void> => {
+    if (!nameInput || !createBtn) return
+    const name = (nameInput.value || '').trim() || 'Pilgrim'
+    if (isProfane(name)) {
+      showNameError('Please choose a different name.')
+      return
+    }
+    showNameError(null)
+    createBtn.disabled = true
+    const created = await createActiveCharacter({ name, color: selectedColor })
+    createBtn.disabled = false
+    if (!created) {
+      showNameError('Could not create pilgrim. Please try again.')
+      return
+    }
+    character = created
+    showReady(created)
+  }
+  createBtn.addEventListener('click', () => void handleCreate())
+  nameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      void handleCreate()
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // READY STATE
+  // -------------------------------------------------------------------------
+  function showReady(c: Character): void {
+    if (!createSection || !readySection) return
+    createSection.hidden = true
+    readySection.hidden = false
+
+    swatch!.style.backgroundColor = hex(c.color)
+    readyName!.textContent = c.name
+    readyMeta!.textContent = `Level ${c.level} \u00b7 ${colorName(c.color)} robe`
+
+    if (c.totalRuns === 0) {
+      readyAggregates!.textContent = 'No journeys yet. Step lightly.'
+    } else {
+      const winRate = Math.round((c.totalWins / c.totalRuns) * 100)
+      readyAggregates!.textContent =
+        `${c.totalWins} win${c.totalWins === 1 ? '' : 's'} \u00b7 ` +
+        `${c.totalRuns} run${c.totalRuns === 1 ? '' : 's'} (${winRate}%) \u00b7 ` +
+        `streak ${c.currentStreak} (best ${c.longestStreak})`
+    }
+  }
+
+  function renderLeaderboard(entries: LeaderboardEntry[]): void {
     if (!leaderboardList || !leaderboardEmpty) return
     leaderboardList.replaceChildren()
     if (entries.length === 0) {
@@ -82,16 +232,16 @@ export function initStartScreen(opts: StartScreenOpts): void {
     leaderboardEmpty.hidden = true
     for (const e of entries) {
       const li = document.createElement('li')
-      const swatch = document.createElement('span')
-      swatch.className = 'swatch'
-      swatch.style.backgroundColor = '#' + e.characterColor.toString(16).padStart(6, '0')
+      const dot = document.createElement('span')
+      dot.className = 'swatch'
+      dot.style.backgroundColor = hex(e.characterColor)
       const name = document.createElement('span')
       name.className = 'name'
       name.textContent = e.characterName || e.displayName || 'Pilgrim'
       const turns = document.createElement('span')
       turns.className = 'turns'
       turns.textContent = `${e.turns} turn${e.turns === 1 ? '' : 's'}`
-      li.appendChild(swatch)
+      li.appendChild(dot)
       li.appendChild(name)
       li.appendChild(turns)
       leaderboardList.appendChild(li)
@@ -115,85 +265,11 @@ export function initStartScreen(opts: StartScreenOpts): void {
     })
   }
 
-  const meta = loadMeta()
-
-  // Pre-fill the name field with the last-used name.
-  if (meta.lastName) nameInput.value = meta.lastName
-
-  // Lifetime stats blurb.
-  if (meta.totalRuns === 0) {
-    statsEl.textContent = 'No journeys yet. Step lightly.'
-  } else {
-    const winRate = Math.round((meta.totalWins / meta.totalRuns) * 100)
-    statsEl.textContent =
-      `${meta.totalWins} win${meta.totalWins === 1 ? '' : 's'} \u00b7 ` +
-      `${meta.totalRuns} run${meta.totalRuns === 1 ? '' : 's'} (${winRate}%) \u00b7 ` +
-      `streak ${meta.currentStreak} (best ${meta.longestStreak})`
-  }
-
-  // Build the full palette: starters + milestone colours.
-  const palette: ColorEntry[] = STARTING_COLORS.map((c) => ({ ...c }))
-  for (const m of MILESTONE_COLORS) {
-    if (!palette.some((c) => c.value === m.color)) {
-      palette.push({ value: m.color, name: m.name })
-    }
-  }
-
-  let selectedColor = meta.unlockedColors[0] ?? palette[0].value
-  const swatches: HTMLElement[] = []
-
-  colorGrid.replaceChildren()
-  for (const c of palette) {
-    const swatch = document.createElement('button')
-    swatch.type = 'button'
-    swatch.className = 'colorSwatch'
-    swatch.style.backgroundColor = '#' + c.value.toString(16).padStart(6, '0')
-
-    const unlocked = meta.unlockedColors.includes(c.value)
-    if (!unlocked) {
-      swatch.disabled = true
-      swatch.classList.add('locked')
-      const milestone = MILESTONE_COLORS.find((m) => m.color === c.value)
-      const wins = milestone?.winsRequired ?? 0
-      swatch.title = `${c.name} \u2014 unlocks at ${wins} win${wins === 1 ? '' : 's'}`
-      swatch.setAttribute('aria-label', `${c.name} (locked)`)
-    } else {
-      swatch.title = c.name
-      swatch.setAttribute('aria-label', c.name)
-      swatch.addEventListener('click', () => {
-        selectedColor = c.value
-        for (const s of swatches) s.classList.remove('selected')
-        swatch.classList.add('selected')
-      })
-    }
-    if (unlocked && c.value === selectedColor) swatch.classList.add('selected')
-    colorGrid.appendChild(swatch)
-    swatches.push(swatch)
-  }
-
-  // Select-the-first-swatch fallback (in case selectedColor isn't actually
-  // in the palette for some reason).
-  if (!swatches.some((s) => s.classList.contains('selected'))) {
-    const firstUnlocked = swatches.find((s) => !s.classList.contains('locked'))
-    if (firstUnlocked) firstUnlocked.classList.add('selected')
-  }
-
-  if (lockedHint) {
-    const lockedCount = palette.filter((c) => !meta.unlockedColors.includes(c.value)).length
-    lockedHint.textContent =
-      lockedCount > 0
-        ? `${lockedCount} robe${lockedCount === 1 ? '' : 's'} locked \u2014 earn them by completing pilgrimages.`
-        : ''
-  }
-
-  const begin = async (): Promise<void> => {
-    const name = (nameInput.value || '').trim() || 'Pilgrim'
-    if (isProfane(name)) {
-      showNameError('Please choose a different name.')
+  const handleBegin = async (): Promise<void> => {
+    if (!character) {
+      showCreate()
       return
     }
-    showNameError(null)
-    const character = makeCharacter(name, selectedColor)
     const useDaily = dailyToggle?.checked ?? false
     let seed: string
     let seedDate: string | undefined
@@ -204,15 +280,8 @@ export function initStartScreen(opts: StartScreenOpts): void {
     } else {
       seed = `traverc-${Math.floor(Math.random() * 1e9)}`
     }
-    root.hidden = true
+    root!.hidden = true
     opts.onBegin({ character, seed, seedDate })
   }
-
-  beginBtn.addEventListener('click', () => void begin())
-  nameInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      void begin()
-    }
-  })
+  beginBtn.addEventListener('click', () => void handleBegin())
 }

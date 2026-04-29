@@ -257,10 +257,48 @@ body {
   font-style: italic;
 }
 
-.startStats {
-  margin: 6px 0 14px;
+.characterCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  margin: 0 0 20px;
+  background: #0e1016;
+  border: 1px solid #2a2d39;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.characterCard__swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid #ffffff33;
+  flex-shrink: 0;
+}
+
+.characterCard__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.characterCard__name {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.3px;
+  color: #f3f1f8;
+}
+
+.characterCard__meta {
+  margin: 4px 0 0;
   font-size: 13px;
-  color: #b8b6c2;
+  color: #ffeb3b;
+}
+
+.characterCard__aggregates {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #8e8c98;
   font-variant-numeric: tabular-nums;
 }
 
@@ -370,7 +408,8 @@ body {
   font-style: italic;
 }
 
-#startBegin {
+#startCreateBtn,
+#startBeginBtn {
   margin-top: 4px;
   padding: 12px 26px;
   width: 100%;
@@ -385,10 +424,12 @@ body {
   transition: transform 0.08s ease, background 0.15s ease;
 }
 
-#startBegin:hover {
+#startCreateBtn:hover,
+#startBeginBtn:hover {
   background: #fff170;
 }
 
-#startBegin:active {
+#startCreateBtn:active,
+#startBeginBtn:active {
   transform: translateY(1px);
 }

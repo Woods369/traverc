@@ -15,8 +15,9 @@ import {
   type TileType,
 } from './world'
 import { showRunEnd } from './overlay'
-import { STARTING_COLORS, makeCharacter, type Character } from './character'
-import { applyRunResult, loadMeta, MILESTONE_COLORS, saveMeta } from './meta'
+import { derivedStats, makeCharacter, type Character } from './character'
+import { MILESTONE_COLORS } from './meta'
+import { applyRunToActive } from './active-character'
 import { submitRun } from './services/runs'
 import { recordVisit } from './services/tiles'
 import { isDailySeed, dateFromDailySeed } from './services/daily'
@@ -79,7 +80,7 @@ export class GameScene extends Phaser.Scene {
   private hoveredKey: string | null = null
   private seed = DEFAULT_SEED
   // Character + per-run derived stats.
-  private character: Character = makeCharacter('Pilgrim', 0xffeb3b)
+  private character: Character = makeCharacter({ name: 'Pilgrim', color: 0xffeb3b })
   private maxHp = 5
   private maxMp = 4
   private viewRadius = 2
@@ -109,7 +110,9 @@ export class GameScene extends Phaser.Scene {
       this.seed = data.seed
     }
     this.seedDate = data?.seedDate ?? dateFromDailySeed(this.seed)
-    const s = this.character.stats
+    // Per-run stats are derived from the persistent character; Phase 3 will
+    // scale them by character.level.
+    const s = derivedStats(this.character)
     this.maxHp = s.maxHp
     this.maxMp = s.maxMp
     this.viewRadius = s.vision
@@ -446,23 +449,7 @@ export class GameScene extends Phaser.Scene {
       if (t.visibility !== 'hidden') revealed++
     })
 
-    // Update meta-progression and capture any new colour unlocks.
-    const oldMeta = loadMeta()
-    const update = applyRunResult(oldMeta, {
-      outcome,
-      tilesExplored: revealed,
-      characterName: this.character.name,
-    })
-    saveMeta(update.meta)
-
-    const newlyUnlockedColorNames = update.newlyUnlockedColors.map((value) => {
-      const fromStarter = STARTING_COLORS.find((c) => c.value === value)
-      if (fromStarter) return fromStarter.name
-      const fromMilestone = MILESTONE_COLORS.find((m) => m.color === value)
-      return fromMilestone?.name ?? 'Unknown'
-    })
-
-    showRunEnd({
+    const baseOverlay = {
       outcome,
       turns: this.turn,
       tilesExplored: revealed,
@@ -471,10 +458,13 @@ export class GameScene extends Phaser.Scene {
       beastKills: this.beastKills,
       banditKills: this.banditKills,
       deathBiome: this.deathBiome,
-      newlyUnlockedColorNames,
-    })
+    } as const
 
-    // Submit to leaderboard if this run was on the shared daily seed.
+    // Show the overlay immediately so it feels responsive; we'll re-render
+    // it once the persistent character update returns (with any unlocks).
+    showRunEnd({ ...baseOverlay, newlyUnlockedColorNames: [] })
+
+    // Submit to the daily leaderboard fire-and-forget.
     if (this.seedDate && isDailySeed(this.seed)) {
       void submitRun({
         seedDate: this.seedDate,
@@ -485,10 +475,33 @@ export class GameScene extends Phaser.Scene {
         beastKills: this.beastKills,
         banditKills: this.banditKills,
         deathBiome: this.deathBiome,
+        characterId: this.character.id,
         characterColor: this.character.color,
         characterName: this.character.name,
       })
     }
+
+    // Persist run aggregates onto the character (backend or localStorage),
+    // then announce any robe-milestone unlocks crossed by this run.
+    const oldWins = this.character.totalWins
+    void applyRunToActive(this.character, {
+      outcome,
+      totalMoves: this.totalMoves,
+      tilesExplored: revealed,
+      deathBiome: this.deathBiome,
+      beastKills: this.beastKills,
+      banditKills: this.banditKills,
+    }).then((updated) => {
+      const newlyUnlockedColorNames: string[] = []
+      for (const m of MILESTONE_COLORS) {
+        if (oldWins < m.winsRequired && updated.totalWins >= m.winsRequired) {
+          newlyUnlockedColorNames.push(m.name)
+        }
+      }
+      if (newlyUnlockedColorNames.length > 0) {
+        showRunEnd({ ...baseOverlay, newlyUnlockedColorNames })
+      }
+    })
   }
 
   private flashLog(text: string, color: string): void {
